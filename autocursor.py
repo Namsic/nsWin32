@@ -1,7 +1,9 @@
 import pyautogui
-
+import ns_win32
+# import subprocess
 
 # Position of Keyboard(Esc-coordinate)
+# subprocess.run('C:\Windows\System32\osk.exe')
 keyPos = [0, 0, 0, 0]
 keyPos[0], keyPos[1], keyPos[2], keyPos[3] = pyautogui.locateOnScreen('image/keyboard_layout.png')
 print('Keyboard located', keyPos[0:2], '/ Size is', keyPos[2:4])
@@ -20,30 +22,22 @@ keyboard = {
     }
 
 
-def click_image(img, comeback=False):
-    mouse_xy = pyautogui.position()
+def click_image(img, comeback=True):
     img_xy = pyautogui.locateOnScreen(img)
     print(str(img) + " / " + str(img_xy))
-    pyautogui.click(img_xy)
-    if comeback:
-        pyautogui.moveTo(mouse_xy)
+    ns_win32.mouse_click(img_xy)
 
 
 def press_key(key, clk=1):
     # print("PressKeyboard: " + str(key))
-    mouse_xy = pyautogui.position()
     # input 'f1 ~ f12' case
-    if key[0] == 'f' and len(key) > 1:
-        pyautogui.click(keyPos[0]+keyboard['func'][0], keyPos[1]+keyboard['func'][1])
-        pyautogui.click(keyPos[0]+keyboard[key[1:]][0], keyPos[1]+keyboard[key[1:]][1])
-        pyautogui.moveTo(mouse_xy)
+    if (not key == 'func') and key[0] == 'f' and len(key) > 1:
+        ns_win32.mouse_click(keyPos[0]+keyboard['func'][0], keyPos[1]+keyboard['func'][1])
+        ns_win32.mouse_click(keyPos[0]+keyboard[key[1:]][0], keyPos[1]+keyboard[key[1:]][1])
         return
-    pyautogui.click(keyPos[0] + keyboard[key][0], keyPos[1] + keyboard[key][1],
-                    clicks=clk)
-    pyautogui.moveTo(mouse_xy)
+    for i in range(clk):
+        ns_win32.mouse_click(keyPos[0] + keyboard[key][0], keyPos[1] + keyboard[key][1])
 
 
 if __name__ == '__main__':
-    for k in keyboard:
-        press_key(k)
-
+    press_key('g')
