@@ -9,38 +9,138 @@ MOUSE_RIGHTDOWN = 0x0008
 MOUSE_RIGHTUP = 0x0010
 MOUSE_WHEEL = 0x0800
 
+key_code = {
+    # func_1
+    'backspace': 0x08,
+    'tab': 0x09,
+    'enter':0x0D,
+    'shift':0x10,
+    'ctrl': 0x11,
+    'alt': 0x12,
+    'capslock': 0x14,
+    'hangul': 0x15,
+    'esc': 0x1B,
+    'space': 0x20,
+    'pageup': 0x21,
+    'pagedown': 0x22,
+    'end': 0x23,
+    'home': 0x24,
+    'left': 0x25, 'up': 0x26, 'right': 0x27, 'down': 0x28,
+    'insert': 0x2D,
+    'delete': 0x2E,
+    # number
+    '0': 0x30, '1': 0x31, '2': 0x32, '3': 0x33, '4': 0x34,
+    '5': 0x35, '6': 0x36, '7': 0x37, '8': 0x38, '9': 0x39,
+    # alphabet
+    'a': 0x41, 'b': 0x42, 'c': 0x43, 'd': 0x44, 'e': 0x45, 'f': 0x46,
+    'g': 0x47, 'h': 0x48, 'i': 0x49, 'j': 0x4A, 'k': 0x4B, 'l': 0x4C,
+    'm': 0x4D, 'n': 0x4E, 'o': 0x4F, 'p': 0x50, 'q': 0x51, 'r': 0x52,
+    's': 0x53, 't': 0x54, 'u': 0x55, 'v': 0x56, 'w': 0x57, 'x': 0x58,
+    'y': 0x59, 'z': 0x5A,
+    'window': 0x5B,
+    # numpad
+    'num0': 0x60, 'num1': 0x61, 'num2': 0x62, 'num3': 0x63, 'num4': 0x64,
+    'num5': 0x65, 'num6': 0x66, 'num7': 0x67, 'num8': 0x68, 'num9': 0x69,
+    'num*': 0x6A, 'num+': 0x6B, 'numenter': 0x6C,
+    'num-': 0x6D, 'num.': 0x6E, 'num/': 0x6F,
+    # f1 ~ f12
+    'f1': 0x70, 'f2': 0x71, 'f3': 0x72, 'f4': 0x73, 'f5': 0x74, 'f6': 0x75,
+    'f7': 0x76, 'f8': 0x77, 'f9': 0x78, 'f10': 0x79, 'f11': 0x7A, 'f12': 0x7B,
+    # func_2
+    'numlock': 0x90,
+    ';': 0xBA, '=': 0xBB, ',': 0xBC, '-': 0xBD, '.': 0xBE, '/': 0xBF, 
+    '`': 0xC0,
+    '[': 0xDB, '\\': 0xDC, ']': 0xDD,  "'": 0xDE, 
+    }
 
-def mouse_move(x, y, rel=False):
-    x1, y1 = win32api.GetCursorPos()
-    if rel:
-        win32api.SetCursorPos((x1+x, y1+y))
-    else:
-        win32api.SetCursorPos((x, y))
 
 
-def mouse_click(x, y):
-    before_pos = win32api.GetCursorPos()
-    win32api.SetCursorPos((x, y))
-    win32api.mouse_event(MOUSE_LEFTDOWN, 0, 0, 0, 0)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-    win32api.SetCursorPos(before_pos)
+class Mouse:
+    def position(x=None, y=None, relative=False):
+        x0, y0 = win32api.GetCursorPos()
+        if x == None:
+            x = x0
+        if y == None:
+            y = y0
+
+        if relative:
+            win32api.SetCursorPos( (x0+x, y0+y) )
+        else:
+            win32api.SetCursorPos( (x, y) )
+        return x, y
 
 
-def keyboard_press(k):
-    win32api.keybd_event(k, 0, 0x00, 0)  # KeyDown
-    win32api.keybd_event(k, 0, 0x02, 0)  # KeyUp
+    def click(x=None, y=None, relative=False, comeback=True, clicks=1, delay=0.05, btn_type='left'):
+        # Set button_code
+        if btn_type == 'left':
+            c = [MOUSE_LEFTDOWN, MOUSE_LEFTUP]
+        elif btn_type == 'right':
+            c = [MOUSE_RIGHTDOWN, MOUSE_RIGHTUP]
+
+        # Memo before position
+        x0, y0 = win32api.GetCursorPos()
+
+        # Move and click
+        Mouse.position(x, y, relative)
+        for i in range(clicks):
+            if not i == 0:
+                time.sleep(delay)
+            win32api.mouse_event(c[0], 0, 0, 0, 0)
+            win32api.mouse_event(c[1], 0, 0, 0, 0)
+
+        # Reposition
+        if comeback:
+            win32api.SetCursorPos( (x0, y0) )
 
 
-def window_set(w_title, position=None, size=None):
-    hwnd = win32gui.FindWindow(None, w_title)
-    info = win32gui.GetWindowRect(hwnd)
-    if position == None:
-        position = (info[0], info[1])
-    if size == None:
-        size = (info[2]-info[0], info[3]-info[1])
-    win32gui.MoveWindow(hwnd, position[0], position[1], size[0], size[1], True)
-    return position
+    def wheel(amount):
+        win32api.mouse_event(MOUSE_WHEEL, 0, 0, amount, 0)
+
+
+class Keyboard:
+    def down(k):
+        win32api.keybd_event(key_code[k], 0, 0x00, 0)
+
+
+    def up(k):
+        win32api.keybd_event(key_code[k], 0, 0x02, 0)
+
+
+    def press(k):
+        Keyboard.down(k)
+        Keyboard.up(k)
+
+
+    def check(k):
+        return win32api.GetAsyncKeyState(key_code[k])
+
+
+class Window:
+    def handle(w_title, position=None, size=None, active=False):
+        hwnd = win32gui.FindWindow(None, w_title)
+        info = win32gui.GetWindowRect(hwnd)
+        if position == None:
+            x, y = info[0:2]
+        else:
+            x, y = positon
+        
+        if size == None:
+            w, h = (info[2]-info[0], info[3]-info[1])
+        else:
+            w, h = size
+        win32gui.MoveWindow(hwnd, x, y, w, h, True)
+        if active:
+            win32gui.SetForegroundWindow(hwnd)
+        return info
 
 
 if __name__ == '__main__':
-    osk_init()
+    _buff = []
+    while True:
+        for k in key_code:
+            pressed = win32api.GetAsyncKeyState(key_code[k])
+            if pressed and not k in _buff:
+                    _buff.append(k)
+                    print(k)
+            if not pressed and k in _buff:
+                    _buff.remove(k)
