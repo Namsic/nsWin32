@@ -1,5 +1,5 @@
 import win32api, win32gui
-import time
+import time, threading
 
 MOUSE_MOVE = 0x0001
 MOUSE_LEFTDOWN = 0x0002
@@ -60,7 +60,6 @@ key_code = {
     'Z': ['shift', 'z'], 
     ':': ['shift', ';'], '?': ['shift', '/']
     }
-
 
 
 class Mouse:
@@ -141,11 +140,37 @@ class Keyboard:
     def check(k):
         if type(k) == list or type(k) == tuple:
             for e in k:
-                if(not win32api.GetAsyncKeyState(key_code[e])):
+                if not win32api.GetAsyncKeyState(key_code[e]) & 0x8000:
                     return False
             return True
         else:
-            return win32api.GetAsyncKeyState(key_code[k])
+            return win32api.GetAsyncKeyState(key_code[k]) & 0x8000
+
+
+    class Event:
+        e_list = []
+        on_listen = False
+        def add(k, func, args=None):
+            Keyboard.Event.e_list.append((k, func, args))
+
+
+        def listen():
+            while Keyboard.Event.on_listen:
+                for e in Keyboard.Event.e_list:
+                    if Keyboard.check(e[0]):
+                        while Keyboard.check(e[0]):
+                            pass
+                        if e[2] == None:
+                            e[1]()
+                        else:
+                            e[1](*e[2])
+        def start(daemon=True):
+            Keyboard.Event.on_listen = True
+            thrd = threading.Thread(target=Keyboard.Event.listen)
+            thrd.daemon = daemon
+            thrd.start()
+        def stop():
+            Keyboard.Event.on_listen = False
 
 
 class Window:
@@ -168,7 +193,9 @@ class Window:
 
 
 if __name__ == '__main__':
-    _buff = []
-    while True:
-        if Keyboard.check(['ctrl', 'f1']):
-            print(Mouse.position())
+    def test_f():
+        print('hi')
+        Mouse.position(0, 0)
+
+    Keyboard.add_event(['f','1'], test_f)
+    Keyboard.event_listen()
