@@ -9,6 +9,8 @@ MOUSE_RIGHTUP = 0x0010
 MOUSE_WHEEL = 0x0800
 
 key_code = {
+    # mouse
+    'mouse_left': 0x01, 'mouse_right': 0x02, 
     # func_1
     'backspace': 0x08,
     'tab': 0x09,
@@ -48,17 +50,17 @@ key_code = {
     '`': 0xC0,
     '[': 0xDB, '\\': 0xDC, ']': 0xDD,  "'": 0xDE,
     # with Shift
-    '!': ['shift', '1'], '@': ['shift', '2'], '#': ['shift', '3'], '$': ['shift', '4'], '%': ['shift', '5'],
-    '^': ['shift', '6'], '&': ['shift', '7'], '(': ['shift', '9'], ')': ['shift', '0'],
-    '~': ['shift', '`'], '_': ['shift', '-'], 
-    '!': ['shift', '1'], '!': ['shift', '1'], 
-    'A': ['shift', 'a'], 'B': ['shift', 'b'], 'C': ['shift', 'c'], 'D': ['shift', 'd'], 'E': ['shift', 'e'], 
-    'F': ['shift', 'f'], 'G': ['shift', 'g'], 'H': ['shift', 'h'], 'I': ['shift', 'i'], 'J': ['shift', 'j'],
-    'K': ['shift', 'k'], 'L': ['shift', 'l'], 'M': ['shift', 'm'], 'N': ['shift', 'n'], 'O': ['shift', 'o'],
-    'P': ['shift', 'p'], 'Q': ['shift', 'q'], 'R': ['shift', 'r'], 'S': ['shift', 's'], 'T': ['shift', 't'],
-    'U': ['shift', 'u'], 'V': ['shift', 'v'], 'W': ['shift', 'w'], 'X': ['shift', 'x'], 'Y': ['shift', 'y'],
-    'Z': ['shift', 'z'], 
-    ':': ['shift', ';'], '?': ['shift', '/']
+    '!': ('shift', '1'), '@': ('shift', '2'), '#': ('shift', '3'), '$': ('shift', '4'), '%': ('shift', '5'),
+    '^': ('shift', '6'), '&': ('shift', '7'), '(': ('shift', '9'), ')': ('shift', '0'), '|': ('shift', '\\'),
+    '~': ('shift', '`'), '_': ('shift', '-'), 
+    '!': ('shift', '1'), '!': ('shift', '1'), 
+    'A': ('shift', 'a'), 'B': ('shift', 'b'), 'C': ('shift', 'c'), 'D': ('shift', 'd'), 'E': ('shift', 'e'), 
+    'F': ('shift', 'f'), 'G': ('shift', 'g'), 'H': ('shift', 'h'), 'I': ('shift', 'i'), 'J': ('shift', 'j'),
+    'K': ('shift', 'k'), 'L': ('shift', 'l'), 'M': ('shift', 'm'), 'N': ('shift', 'n'), 'O': ('shift', 'o'),
+    'P': ('shift', 'p'), 'Q': ('shift', 'q'), 'R': ('shift', 'r'), 'S': ('shift', 's'), 'T': ('shift', 't'),
+    'U': ('shift', 'u'), 'V': ('shift', 'v'), 'W': ('shift', 'w'), 'X': ('shift', 'x'), 'Y': ('shift', 'y'),
+    'Z': ('shift', 'z'), 
+    ':': ('shift', ';'), '?': ('shift', '/')
     }
 
 
@@ -78,16 +80,13 @@ class Mouse:
 
 
     def click(x=None, y=None, relative=False, comeback=True, repeat=1, delay=0.05, btn_type='left'):
-        # Set button_code
         if btn_type == 'left':
             c = [MOUSE_LEFTDOWN, MOUSE_LEFTUP]
         elif btn_type == 'right':
             c = [MOUSE_RIGHTDOWN, MOUSE_RIGHTUP]
 
-        # Memo before position
         x0, y0 = win32api.GetCursorPos()
 
-        # Move and click
         Mouse.position(x, y, relative)
         for i in range(repeat):
             if not i == 0:
@@ -95,7 +94,6 @@ class Mouse:
             win32api.mouse_event(c[0], 0, 0, 0, 0)
             win32api.mouse_event(c[1], 0, 0, 0, 0)
 
-        # Reposition
         if comeback:
             win32api.SetCursorPos( (x0, y0) )
 
@@ -137,43 +135,59 @@ class Keyboard:
             Keyboard.press(c)
 
 
-    def check(k):
-        if type(k) == list or type(k) == tuple:
-            for e in k:
+class Event:
+    detect_pause = False
+
+    
+    def check(target):
+        if type(target) == list or type(target) == tuple:
+            for e in target:
                 if not win32api.GetAsyncKeyState(key_code[e]) & 0x8000:
                     return False
             return True
         else:
-            return win32api.GetAsyncKeyState(key_code[k]) & 0x8000
+            return win32api.GetAsyncKeyState(key_code[target]) & 0x8000
 
 
-    class Event:
-        e_list = []
-        on_listen = False
-        def add(k, func, args=None):
-            Keyboard.Event.e_list.append((k, func, args))
+    def event(cmd, func, args):
+        while True:
+            if Event.detect_pause:
+                continue
+            
+            if Event.check(cmd):
+                while Event.check(cmd):
+                    pass
+                if args == None:
+                    func()
+                elif type(args) != tuple:
+                    func(args)
+                else:
+                    func(*args)
 
 
-        def listen():
-            while Keyboard.Event.on_listen:
-                for e in Keyboard.Event.e_list:
-                    if Keyboard.check(e[0]):
-                        while Keyboard.check(e[0]):
-                            pass
-                        if e[2] == None:
-                            e[1]()
-                        else:
-                            e[1](*e[2])
-        def start(daemon=True):
-            Keyboard.Event.on_listen = True
-            thrd = threading.Thread(target=Keyboard.Event.listen)
-            thrd.daemon = daemon
-            thrd.start()
-        def stop():
-            Keyboard.Event.on_listen = False
+    def add_command(cmd, func, args=None):
+        tmp_t = threading.Thread(target=Event.event, args=(cmd, func, args))
+        tmp_t.daemon = True
+        tmp_t.start()
+
+
+    def detect():
+        pressed = []
+        while True:
+            for k in key_code:
+                if type(key_code[k]) == tuple:
+                    continue
+                if k not in pressed and Event.check(k):
+                    pressed.append(k)
+                if k in pressed and not Event.check(k):
+                    pressed.remove(k)
 
 
 class Window:
+    width = win32api.GetSystemMetrics(0)
+    height = win32api.GetSystemMetrics(1)
+
+
     def handle(w_title, position=None, size=None, active=False):
         hwnd = win32gui.FindWindow(None, w_title)
         info = win32gui.GetWindowRect(hwnd)
@@ -193,9 +207,6 @@ class Window:
 
 
 if __name__ == '__main__':
-    def test_f():
-        print('hi')
-        Mouse.position(0, 0)
-
-    Keyboard.add_event(['f','1'], test_f)
-    Keyboard.event_listen()
+    Event.add_command('1', Mouse.position, (100, 100))
+    Event.add_command(['2', '3'], Mouse.position, (200, 200))
+    Event.add_command('4', Mouse.click)
