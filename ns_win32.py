@@ -176,7 +176,7 @@ class Event:
 
     def add(cmd, func, args=None):
         tmp_t = threading.Thread(target=Event.event, args=(cmd, func, args))
-        tmp_t.daemon = True
+        #tmp_t.daemon = True
         tmp_t.start()
 
 

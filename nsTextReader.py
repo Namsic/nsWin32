@@ -1,4 +1,4 @@
-import sys, traceback
+import sys, traceback, os
 
 
 # import module
@@ -18,7 +18,7 @@ def run(filename):
     # run python script
     try:
         exec(source)
-        print('complete')
+        print('ok')
     except Exception:
         log = traceback.format_exc().strip().split('\n')
         line_num = log[-2].split(', ')[1][-1]
@@ -29,18 +29,16 @@ def run(filename):
     return True
 
 
-def immediate_execution():
-    while True:
-        filename = input("filename: ")
-        if filename == 'exit':
-            break        
-        run(filename)
-
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         run(' '.join(sys.argv[1:]))
     else:
-        print('1: 직접 실행하기')
-        print('2: 실행파일 만들기')
-        type = input('>>>')
-        immediate_execution()
+        _path = input('filePath: ')
+        content = [
+            '@echo off',
+            os.getcwd() + '\\nsBuilder.exe ' + _path,
+            'pause'
+            ]
+        f = open(_path + '_Run.bat', 'w')
+        f.write('\n'.join(content))
+        f.close()
