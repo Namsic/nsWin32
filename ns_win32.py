@@ -145,7 +145,6 @@ class Keyboard:
 
 
 class Event:
-    detect_pause = False
     on_detect = True
     
     def check(target):
@@ -160,9 +159,6 @@ class Event:
 
     def event(cmd, func, args):
         while Event.on_detect:
-            if Event.detect_pause:
-                continue
-            
             if Event.check(cmd):
                 while Event.check(cmd):
                     pass
@@ -179,25 +175,6 @@ class Event:
         #tmp_t.daemon = True
         tmp_t.start()
 
-
-    def detect(func, stop_command=('ctrl', 'f1')):
-        pressed = []
-        Event.add(stop_command, Event.stop)
-        while Event.on_detect:
-            if Event.detect_pause:
-                continue
-            
-            for k in key_code:
-                if type(key_code[k]) == tuple:
-                    continue
-                if k not in pressed and Event.check(k):
-                    pressed.append(k)
-                    func(k, True)
-                if k in pressed and not Event.check(k):
-                    pressed.remove(k)
-                    func(k, False)
-    def pause():
-        Event.detect_pause = not Event.detect_pause
     def stop():
         Event.on_detect = False
 
@@ -227,25 +204,7 @@ class Window:
 
 
 if __name__ == '__main__':
-    before_press = None
-    before_mouse = None
-    def print_action(key, press):
-        global before_press, before_mouse
-        if press:
-            output = '[_Pressed] '
-            before_press = key
-            before_mouse = Mouse.position()
-        else:
-            if key == before_press:
-                if key[:5] != "mouse":
-                    return
-                elif before_mouse == Mouse.position():
-                    return
-            output = '[Released] '
-        print(output + key)
-        if key[:5] == "mouse":
-            x, y = Mouse.position()
-            print("    x:", x)
-            print("    y:", y)
-
-    Event.detect(print_action)
+    def get_mouse():
+        print(Mouse.position())
+    Event.add('mouse_left', get_mouse)
+    Event.add(('ctrl', 'q'), Event.stop)
